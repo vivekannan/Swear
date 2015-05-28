@@ -12,8 +12,13 @@ def downloadAndRate(movie):
 	
 	subsResult = openSubs.SearchSubtitles(token, [{ 'sublanguageid': 'eng', 'imdbid': movie['id'] }])
 	
-	if subsResult['status'] == '200 OK':
+	if subsResult['status'] == '200 OK' and subsResult['data'] != False:
 		link = max([(x['SubDownloadsCnt'], x['SubDownloadLink']) for x in subsResult['data']])[1]
+	
+	else:
+		print subsResult
+		print 'Can\'t find subtitles for the given title.'
+		sys.exit(-9)
 	
 	content = gzip.GzipFile(fileobj = StringIO.StringIO(urllib.urlopen(link).read())).read().lower()
 	
@@ -45,9 +50,15 @@ try:
 	movieQueryResult = openSubs.SearchMoviesOnIMDB(token, sys.argv[1])
 	
 	if movieQueryResult['status'] == '200 OK':
+		if movieQueryResult['data'] == False:
+			print 'Can\'t find any titles for the given query!'
+			sys.exit(-3)
+		
+		movieQueryResult['data'] = [_ for _ in movieQueryResult['data'] if '(TV Series)' not in _['title'] and '(Video Game)' not in _['title']]
 		n = len(movieQueryResult['data'])
 		
 		if n == 1:
+			print movieQueryResult
 			print 'Found one title based on the given query.'
 			print movieQueryResult['data'][0]['title']
 			option = raw_input('Is this the title you are looking for? (Y/N)')
@@ -56,7 +67,7 @@ try:
 				downloadAndRate(movieQueryResult['data'][0])
 			else:
 				print 'Can\'t find any other title. Please change your query'
-				sys.exit(-3)
+				sys.exit(-4)
 		
 		if n > 1:
 			print 'Found the following partial matches'
@@ -73,20 +84,21 @@ try:
 					downloadAndRate(movieQueryResult['data'][option - 1])
 				else:
 					print 'Cannot find any other results. Please change your query.'
-					sys.exit(-4)
+					sys.exit(-5)
 			else:
 				print 'Invalid option, exiting.....'
-				sys.exit(-5)
+				sys.exit(-6)
 			
 	else:
 		print 'Movie query failed. Please try again later.'
-		sys.exit(-6)
+		sys.exit(-7)
 	
 except Exception as e:
+	print e
 	if e.strerror == 'Name or service not known':
 		print 'Invalid XMLRPC url.'
-		sys.exit(-7)
+		sys.exit(-8)
 	
 	else:
 		print 'Something went wrong! Please try again later.'
-		sys.exit(-8)
+		sys.exit(-9)
