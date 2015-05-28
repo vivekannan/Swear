@@ -16,17 +16,19 @@ def downloadAndRate(movie):
 		link = max([(x['SubDownloadsCnt'], x['SubDownloadLink']) for x in subsResult['data']])[1]
 	
 	else:
-		print subsResult
 		print 'Can\'t find subtitles for the given title.'
 		sys.exit(-9)
 	
 	content = gzip.GzipFile(fileobj = StringIO.StringIO(urllib.urlopen(link).read())).read().lower()
 	
-	for word in BLACKLIST:
-		c = content.count(" " + word + " ")
-		
-		if c:
-			print '{} - {} time(s).'.format(word, c)
+	count = { word : content.count(word) for word in BLACKLIST if content.count(word) }
+	
+	if count:
+		for w in count.keys():
+			print '{} - {} time(s)'.format(w, count[w])
+	
+	else:
+		print 'Movie is clean...probably. :)'
 	
 	openSubs.close()
 	sys.exit(0)
@@ -73,7 +75,7 @@ try:
 			print 'Found the following partial matches'
 			
 			for _ in xrange(0, n):
-				print '{} - {}'.format(_ + 1, movieQueryResult['data'][_]['title'].encode('ascii', 'ignore'))
+				print '[{}] {}'.format(_ + 1, movieQueryResult['data'][_]['title'].encode('ascii', 'ignore'))
 			
 			option = raw_input('Select a title: ')
 			
@@ -94,7 +96,6 @@ try:
 		sys.exit(-7)
 	
 except Exception as e:
-	print e
 	if e.strerror == 'Name or service not known':
 		print 'Invalid XMLRPC url.'
 		sys.exit(-8)
