@@ -30,7 +30,8 @@ def countAndPrint(sub):
 			temp[0].append(word)
 	
 	for rate, words in zip(['Boat-Load', 'Load', 'Dash', 'Hint'], temp):
-		print '{} of \033[93m{}\033[0m.'.format(rate, ', '.join(words))
+		if words:
+			print '{} of \033[93m{}\033[0m.'.format(rate, ', '.join(words))
 	
 	sys.exit(0)
 
