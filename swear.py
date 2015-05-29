@@ -1,14 +1,42 @@
+#! /usr/bin/env python2.7
 import sys
 import gzip
 import urllib
 import StringIO
 import xmlrpclib
 
-BLACKLIST = [ 'anal', 'anus', 'arse', 'ass', 'asshole', 'assfucker', 'ballsack', 'balls', 'bastard', 'bitch', 'biatch', 'bloody', 'blowjob', 'bollock', 'bollok', 'boner', 'boob', 'bugger', 'bum', 'butt', 'buttplug', 'clitoris', 'cock', 'coon', 'crap', 'cunt', 'damn', 'dick', 'dildo', 'dyke', 'fag', 'feck', 'fellate', 'fellatio', 'felching', 'fuck', 'fucker', 'fucking', 'fudgepacker', 'flange', 'goddamn', 'hell', 'homo', 'jerk', 'jizz', 'labia', 'muff', 'nigger', 'nigga', 'penis', 'piss', 'poop', 'prick', 'pube', 'pussy', 'queer', 'scrotum', 'sex', 'shit', 'slut', 'tosser', 'turd', 'twat', 'vagina', 'wank', 'whore' ]
+BLACKLIST = [ 'anal', 'anus', 'arse', 'ass', 'asshole', 'assfucker', 'ballsack', 'balls', 'bastard', 'bitch', 'biatch', 'bloody', 'blowjob', 'bollock', 'bollok', 'boner', 'boob', 'bugger', 'bum', 'butt', 'buttplug', 'clitoris', 'cock', 'coon', 'crap', 'cunt', 'damn', 'dick', 'dildo', 'dyke', 'fag', 'feck', 'fellate', 'fellatio', 'felching', 'fuck', 'fucker', 'fucking', 'fuckin', 'fudgepacker', 'flange', 'goddamn', 'hell', 'homo', 'jerk', 'jizz', 'labia', 'muff', 'nigger', 'nigga', 'penis', 'piss', 'poop', 'prick', 'pube', 'pussy', 'queer', 'scrotum', 'sex', 'shit', 'slut', 'tosser', 'turd', 'twat', 'vagina', 'wank', 'whore' ]
 
-def downloadAndRate(movie):
+def countAndPrint(sub):
 	
-	print 'Selected {}, downloading subtitle...'.format(movie['title'])
+	sub = sub.translate(None, "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\n").split(' ')
+	
+	count = { word:sub.count(word) for word in BLACKLIST if sub.count(word) }
+	
+	if not count:
+		print 'Movie is clean....probably. :)'
+		sys.exit(0)
+	
+	temp = [[], [], [], []]
+	
+	for word, c in count.items():
+		if c == 1:
+			temp[3].append(word)
+		elif c < 5:
+			temp[2].append(word)
+		elif c < 10:
+			temp[1].append(word)
+		else:
+			temp[0].append(word)
+	
+	for rate, words in zip(['Boat-Load', 'Load', 'Dash', 'Hint'], temp):
+		print '{} of \033[93m{}\033[0m.'.format(rate, ', '.join(words))
+	
+	sys.exit(0)
+
+def downloadAndCount(movie):
+	
+	print 'Selected "{}", downloading subtitle...'.format(movie['title'])
 	
 	subsResult = openSubs.SearchSubtitles(token, [{ 'sublanguageid': 'eng', 'imdbid': movie['id'] }])
 	
@@ -20,21 +48,12 @@ def downloadAndRate(movie):
 		sys.exit(-9)
 	
 	content = gzip.GzipFile(fileobj = StringIO.StringIO(urllib.urlopen(link).read())).read().lower()
-	
-	count = { word : content.count(word) for word in BLACKLIST if content.count(word) }
-	
-	if count:
-		for w in count.keys():
-			print '{} - {} time(s)'.format(w, count[w])
-	
-	else:
-		print 'Movie is clean...probably. :)'
-	
 	openSubs.close()
-	sys.exit(0)
+	
+	countAndPrint(content)
 
 if len(sys.argv) != 2:
-	print "Swear expects exactly one argument. (Movie name)"
+	print 'Swear expects exactly one argument. (Movie name)'
 	sys.exit(-1)
 
 openSubs = xmlrpclib.Server('https://api.opensubtitles.org/xml-rpc')
@@ -66,7 +85,7 @@ try:
 			option = raw_input('Is this the title you are looking for? (Y/N)')
 			
 			if option == 'Y' or option == 'y':
-				downloadAndRate(movieQueryResult['data'][0])
+				downloadAndCount(movieQueryResult['data'][0])
 			else:
 				print 'Can\'t find any other title. Please change your query'
 				sys.exit(-4)
@@ -83,7 +102,7 @@ try:
 				option = int(option)
 				
 				if option > 0 and option < len(movieQueryResult['data']):
-					downloadAndRate(movieQueryResult['data'][option - 1])
+					downloadAndCount(movieQueryResult['data'][option - 1])
 				else:
 					print 'Cannot find any other results. Please change your query.'
 					sys.exit(-5)
@@ -97,7 +116,7 @@ try:
 	
 except Exception as e:
 	if e.strerror == 'Name or service not known':
-		print 'Invalid XMLRPC url.'
+		print 'Invalid XMLRPC URL.'
 		sys.exit(-8)
 	
 	else:
